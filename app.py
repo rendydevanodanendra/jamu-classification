@@ -3,42 +3,59 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 
-# Konfigurasi Halaman
-st.set_page_config(page_title="Klasifikasi Rimpang Jamu", page_icon="🌿")
+st.set_page_config(page_title="Klasifikasi Rimpang", page_icon="🌿")
+st.title("🌿 Klasifikasi Rimpang Jamu")
 
-st.title("🌿 Sistem Klasifikasi Rimpang Jamu Madura")
-st.write("Unggah foto irisan rimpang untuk diprediksi oleh model AI.")
-
-# Daftar kelas (sesuaikan urutannya dengan output modelmu)
 class_names = ['Jahe', 'Kencur', 'Kunyit', 'Lengkuas', 'Temulawak']
 
-# Fungsi untuk memuat model (di-cache agar tidak loading terus-menerus)
+# Membangun ulang arsitektur persis seperti di code lu, lalu load bobotnya
 @st.cache_resource
-def load_model():
-    return tf.keras.models.load_model("model_jamu.h5")
+def load_model_and_weights():
+    # Augmentasi
+    data_augmentation = tf.keras.Sequential([
+        tf.keras.layers.RandomFlip("horizontal_and_vertical"),
+        tf.keras.layers.RandomRotation(0.3),
+        tf.keras.layers.RandomZoom(0.15)
+    ])
+    
+    # Base model
+    base_model = tf.keras.applications.EfficientNetB0(
+        input_shape=(224, 224, 3), 
+        include_top=False, 
+        weights=None # None karena kita akan timpa dengan weights lu
+    )
+    
+    # Custom head
+    inputs = tf.keras.Input(shape=(224, 224, 3))
+    x = data_augmentation(inputs)
+    x = tf.keras.applications.efficientnet.preprocess_input(x)
+    x = base_model(x, training=False)
+    x = tf.keras.layers.GlobalAveragePooling2D()(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.Dropout(0.4)(x)
+    outputs = tf.keras.layers.Dense(5, activation='softmax')(x)
+    
+    model = tf.keras.Model(inputs, outputs)
+    
+    # Load file weights lu (pastikan nama file h5-nya sesuai yang ada di GitHub)
+    model.load_weights("model_jamu.h5") 
+    
+    return model
 
-model = load_model()
+model = load_model_and_weights()
 
-# Widget Upload Gambar
-uploaded_file = st.file_uploader("Pilih file gambar...", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Upload gambar rimpang...", type=["jpg", "png"])
 
 if uploaded_file is not None:
-    # Tampilkan gambar yang diunggah
     image = Image.open(uploaded_file)
-    st.image(image, caption='Gambar yang diunggah', use_column_width=True)
+    st.image(image, caption='Gambar yang diunggah')
     
-    st.write("⏳ Memproses prediksi...")
-    
-    # Preprocessing gambar agar sesuai dengan input model (224x224)
     img = image.resize((224, 224))
     img_array = tf.keras.utils.img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
     
-    # Prediksi
     predictions = model.predict(img_array)
     idx_pred = np.argmax(predictions[0])
-    confidence = predictions[0][idx_pred] * 100
     
-    # Tampilkan Hasil
-    st.success(f"**Hasil Prediksi: {class_names[idx_pred]}**")
-    st.info(f"Tingkat Kepercayaan (Confidence): {confidence:.2f}%")
+    st.success(f"**Prediksi: {class_names[idx_pred]}**")
+    st.info(f"Confidence: {predictions[0][idx_pred] * 100:.2f}%")
