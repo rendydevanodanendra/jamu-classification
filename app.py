@@ -11,15 +11,15 @@ st.title("🌿 Klasifikasi Jenis Rimpang Jamu Madura")
 st.write("Aplikasi ini menggunakan Deep Learning (EfficientNetB0) untuk mengklasifikasikan irisan rimpang ke dalam 5 kategori: **Jahe, Kencur, Kunyit, Lengkuas, dan Temulawak**.")
 
 # Fungsi untuk memuat model (di-cache agar lebih cepat & hemat memori)
+# Ubah nama fungsinya sedikit (misal ditambah angka 2) agar cache lama dibuang
 @st.cache_resource
-def load_model():
-    # Pastikan nama file sesuai dengan model yang Anda simpan
+def load_model_2():
     model = tf.keras.models.load_model('model_jamu.keras')
     return model
 
-# Load model
+# Load model dengan nama fungsi yang baru
 try:
-    model = load_model()
+    model = load_model_2()
 except Exception as e:
     st.error(f"Gagal memuat model: {e}")
 
