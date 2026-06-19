@@ -14,7 +14,7 @@ st.write("Aplikasi ini menggunakan Deep Learning (EfficientNetB0) untuk mengklas
 @st.cache_resource
 def load_model():
     # Pastikan nama file sesuai dengan model yang Anda simpan
-    model = tf.keras.models.load_model('model_rimpang.h5')
+    model = tf.keras.models.load_model('model_jamu.h5')
     return model
 
 # Load model
